@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Earclacks-Inspired Ball Tanks</title>
+    <link rel="stylesheet" href="src/style.css" />
+  </head>
+  <body>
+    <div id="ui">
+      <div class="controls">
+        <label for="type">Choose tank:</label>
+        <select id="type">
+          <option value="grower">Grower</option>
+          <option value="wrench">Wrench (spawns turret)</option>
+          <option value="swinger">Swinger</option>
+          <option value ="basic">Basic</option>
+        </select>
+        <label for="spawnTeam">Team:</label>
+        <input type="number" id="spawnTeam" value="1" style="width:60px" />
+        <button id="spawn">Spawn</button>
+        <button id="spawnPair">Spawn Two (for cross)</button>
+        <button id="cross">Cross Selected</button>
+        <button id="restart">Restart</button>
+      </div>
+      <div class="info">
+        <div>Balls: <span id="count">0</span></div>
+        <div>Click canvas to set spawn position.</div>
+      </div>
+    </div>
+    
+    <div id="sidebar">
+      <h3>Ball Control</h3>
+      <div class="team-controls">
+        <input type="number" id="teamNumber" value="1" placeholder="Team #" />
+        <button id="assignTeam">Set Team</button>
+        <button id="newTeam">New Team</button>
+      </div>
+      <div id="ballList"></div>
+    </div>
+    
+    <canvas id="game"></canvas>
+    <script src="src/main.js"></script>
+  </body>
+</html>

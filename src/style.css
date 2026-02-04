@@ -1,0 +1,20 @@
+:root{--bg:#0f1720;--panel:#0b1220;--accent:#7dd3fc}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:#e6eef6;font-family:Inter,system-ui,Arial,Helvetica,sans-serif}
+#ui{position:absolute;left:12px;top:12px;z-index:10}
+.controls{background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.info{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px}
+canvas{display:block;width:100vw;height:100vh}
+button,select{background:#0b1726;color:#e6eef6;border:1px solid rgba(255,255,255,0.06);padding:6px 8px;border-radius:6px;cursor:pointer}
+label{margin-right:6px}
+
+#sidebar{position:fixed;right:0;top:0;width:320px;height:100vh;background:rgba(15,23,32,0.95);border-left:2px solid rgba(255,255,255,0.1);padding:16px;overflow-y:auto;z-index:10}
+#sidebar h3{margin-top:0;color:#7dd3fc}
+.team-controls{display:flex;gap:6px;margin-bottom:12px}
+.team-controls input{flex:1;background:#0b1726;color:#e6eef6;border:1px solid rgba(255,255,255,0.1);padding:6px;border-radius:4px}
+#ballList{display:flex;flex-direction:column;gap:6px}
+.ball-item{background:rgba(255,255,255,0.05);padding:8px;border-radius:6px;display:flex;align-items:center;gap:8px;cursor:pointer;border:2px solid transparent}
+.ball-item.selected{border-color:#ff0;background:rgba(255,255,0,0.1)}
+.ball-color{width:20px;height:20px;border-radius:50%;border:1px solid #000}
+.ball-item span{flex:1;font-size:12px}
+.team-input{width:50px;background:#0b1726;color:#e6eef6;border:1px solid rgba(255,255,255,0.1);padding:4px;border-radius:4px;font-size:11px}
