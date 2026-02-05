@@ -7,9 +7,11 @@ resize(); window.addEventListener('resize', resize);
 
 const rand = (a,b) => Math.random()*(b-a)+a;
 let gameMode = 'sandbox';
-let gameState = { balls: [], projectiles: [], turrets: [], teams: {}, nextTeamId: 1, shrinkRadius: null, spawnX: W/2, spawnY: H/2 };
+let gameState = { balls: [], projectiles: [], turrets: [], teams: {}, nextTeamId: 1, nextBallId: 1, shrinkRadius: null, spawnX: W/2, spawnY: H/2 };
 let selectedBall = null;
 let gameRunning = false;
+let gamePaused = false;
+let gameSpeed = 1;
 
 // WEAPON DEFINITIONS - ALL 22 WEAPONS
 const WEAPONS = {
@@ -34,7 +36,8 @@ const WEAPONS = {
   boomerang: { name: 'Boomerang', color: '#c5c500', desc: 'Throws boomerang in arc every 3 seconds increases damage by 2', boomerangCD: 180, dmgGrowth: 2 },
   flail: { name: 'Flail', color: '#e2947c', desc: 'Unpredictably flings flail increasing size and damage by half', flailSize: 1, flailGrowth: 0.5 },
   crossbow: { name: 'Crossbow', color: '#7cb900', desc: 'Shoots 1 arrow every second arrow damage scales by 1', fireRate: 60, dmgGrowth: 1 },
-  torch: { name: 'Torch', color: '#983a8e', desc: 'Creates flames every hit lifetime increases by 1 second', flameLife: 60, lifeGrowth: 60 }
+  torch: { name: 'Torch', color: '#983a8e', desc: 'Creates flames every hit lifetime increases by 1 second', flameLife: 60, lifeGrowth: 60 },
+  sniper: { name: 'Sniper', color: '#1a1a1a', desc: 'Shoots devastating bullet every 5 seconds instantly kills any target', fireRate: 300, oneHitKill: true }
 };
 
 // BLOCK BREAKER BALLS
@@ -55,6 +58,7 @@ const BLOCK_BREAKERS = {
 // Ball Class
 class Ball {
   constructor(x, y, type) {
+    this.id = gameState.nextBallId++;
     this.x = x; this.y = y; this.vx = 0; this.vy = 0;
     this.type = type;
     this.weapon = WEAPONS[type] || BLOCK_BREAKERS[type];
@@ -180,7 +184,7 @@ class Ball {
     
     if (this.type === 'wrench' && (!this.cooldowns.wrench || this.cooldowns.wrench <= 0)) {
       this.cooldowns.wrench = 120;
-      gameState.turrets.push(new Turret(this.x + rand(-30, 30), this.y + rand(-30, 30), this.teamId, this.color));
+      gameState.turrets.push(new Turret(this.x + rand(-30, 30), this.y + rand(-30, 30), this.teamId, this.color, this.id));
     }
     
     if (this.type === 'flask' && (!this.cooldowns.flask || this.cooldowns.flask <= 0)) {
@@ -205,6 +209,21 @@ class Ball {
       this.cooldowns.torch = 100;
       gameState.projectiles.push(new Projectile(this.x, this.y, 0, 0, 0.3, this.teamId, 'flame', '#983a8e', 15, 0, 60 + (this.weaponStats.flameLife || 0)));
       this.weaponStats.flameLife = (this.weaponStats.flameLife || 0) + 60;
+    }
+    
+    if (this.type === 'sniper' && (!this.cooldowns.sniper || this.cooldowns.sniper <= 0)) {
+      this.cooldowns.sniper = 300;
+      // Find nearest enemy to shoot at
+      let target = null, minDist = 999999;
+      for (let b of gameState.balls) {
+        if (b.teamId === this.teamId || b.health <= 0 || b === this) continue;
+        let d = Math.hypot(b.x - this.x, b.y - this.y);
+        if (d < minDist) { minDist = d; target = b; }
+      }
+      if (target) {
+        let angle = Math.atan2(target.y - this.y, target.x - this.x);
+        gameState.projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 12, Math.sin(angle) * 12, 9999, this.teamId, 'sniper', '#1a1a1a', 8));
+      }
     }
     
     if (this.type === 'lazer' && (!this.cooldowns.lazer || this.cooldowns.lazer <= 0)) {
@@ -339,8 +358,9 @@ class Projectile {
 
 // Turret Class
 class Turret {
-  constructor(x, y, teamId, color) {
+  constructor(x, y, teamId, color, ownerBallId) {
     this.x = x; this.y = y; this.teamId = teamId; this.color = color;
+    this.ownerBallId = ownerBallId;
     this.cooldown = 0;
     this.health = 50;
   }
@@ -389,6 +409,17 @@ function clearMap() {
   gameState.balls = [];
   gameState.projectiles = [];
   gameState.turrets = [];
+}
+
+function togglePause() {
+  gamePaused = !gamePaused;
+  let btn = document.getElementById('pauseBtn');
+  btn.textContent = gamePaused ? '▶️ Resume' : '⏸️ Pause';
+}
+
+function updateSpeed(value) {
+  gameSpeed = parseInt(value);
+  document.getElementById('speedLabel').textContent = gameSpeed + 'x';
 }
 
 function createTeam() {
@@ -442,29 +473,25 @@ function updateSidebar() {
 function gameLoop() {
   if (!gameRunning) return;
   
-  // Clear
-  ctx.fillStyle = '#f5f5dc';
-  ctx.fillRect(0, 0, W, H);
+  if (!gamePaused) {
+    // Run multiple updates based on game speed
+    for (let speedIteration = 0; speedIteration < gameSpeed; speedIteration++) {
+      updateGame();
+    }
+  }
   
-  // Draw arena
-  let mapSize = Math.min(W, H) - 100;
-  let mapX = (W - mapSize) / 2;
-  let mapY = (H - mapSize) / 2;
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(mapX, mapY, mapSize, mapSize);
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 4;
-  ctx.strokeRect(mapX, mapY, mapSize, mapSize);
+  // Always draw even when paused
+  drawGame();
   
+  updateSidebar();
+  requestAnimationFrame(gameLoop);
+}
+
+function updateGame() {
   // Battle Royale shrink
   if (gameMode === 'battleroyale') {
     if (!gameState.shrinkRadius) gameState.shrinkRadius = Math.min(W, H) / 2;
     gameState.shrinkRadius -= 0.5;
-    ctx.beginPath();
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 3;
-    ctx.arc(W / 2, H / 2, gameState.shrinkRadius, 0, Math.PI * 2);
-    ctx.stroke();
     
     // Damage balls outside
     gameState.balls.forEach(b => {
@@ -474,15 +501,19 @@ function gameLoop() {
     });
   }
   
-  // Update & draw
+  // Update entities
+  // Remove turrets of dead balls before removing the balls
+  let deadBallIds = gameState.balls.filter(b => b.health <= 0).map(b => b.id);
+  if (deadBallIds.length > 0) {
+    gameState.turrets = gameState.turrets.filter(t => t.ownerBallId === undefined || !deadBallIds.includes(t.ownerBallId));
+  }
   gameState.balls = gameState.balls.filter(b => b.health > 0);
-  gameState.balls.forEach(b => { b.update(); b.draw(ctx); });
+  gameState.balls.forEach(b => b.update());
   
   gameState.projectiles = gameState.projectiles.filter(p => p.update());
-  gameState.projectiles.forEach(p => p.draw(ctx));
   
   gameState.turrets = gameState.turrets.filter(t => t.health > 0);
-  gameState.turrets.forEach(t => { t.update(); t.draw(ctx); });
+  gameState.turrets.forEach(t => t.update());
   
   // Collisions
   for (let i = 0; i < gameState.balls.length; i++) {
@@ -530,17 +561,65 @@ function gameLoop() {
     }
   }
   
-  updateSidebar();
-  requestAnimationFrame(gameLoop);
+}
+
+function drawGame() {
+  // Clear
+  ctx.fillStyle = '#f5f5dc';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Draw arena
+  let mapSize = Math.min(W, H) - 100;
+  let mapX = (W - mapSize) / 2;
+  let mapY = (H - mapSize) / 2;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(mapX, mapY, mapSize, mapSize);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(mapX, mapY, mapSize, mapSize);
+  
+  // Draw Battle Royale shrink zone if active
+  if (gameMode === 'battleroyale' && gameState.shrinkRadius) {
+    ctx.beginPath();
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 3;
+    ctx.arc(W / 2, H / 2, gameState.shrinkRadius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  // Draw all entities
+  gameState.balls.forEach(b => b.draw(ctx));
+  gameState.projectiles.forEach(p => p.draw(ctx));
+  gameState.turrets.forEach(t => t.draw(ctx));
+  
+  // Draw pause indicator
+  if (gamePaused) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PAUSED', W / 2, H / 2);
+  }
+}
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('PAUSED', W / 2, H / 2);
+  }
 }
 
 // UI FUNCTIONS
 function startMode(mode) {
   gameMode = mode;
   gameRunning = true;
+  gamePaused = false;
+  gameSpeed = 1;
   document.getElementById('mainMenu').style.display = 'none';
   document.getElementById('gameScreen').style.display = 'block';
   document.getElementById('modeLabel').textContent = mode.toUpperCase();
+  document.getElementById('pauseBtn').textContent = '⏸️ Pause';
+  document.getElementById('speedSlider').value = 1;
+  document.getElementById('speedLabel').textContent = '1x';
   
   // Populate ball types
   let select = document.getElementById('ballType');
@@ -567,7 +646,7 @@ function endGame() {
   saveGame();
   document.getElementById('gameScreen').style.display = 'none';
   document.getElementById('mainMenu').style.display = 'flex';
-  gameState = { balls: [], projectiles: [], turrets: [], teams: {}, nextTeamId: 1, shrinkRadius: null, spawnX: W/2, spawnY: H/2 };
+  gameState = { balls: [], projectiles: [], turrets: [], teams: {}, nextTeamId: 1, nextBallId: 1, shrinkRadius: null, spawnX: W/2, spawnY: H/2 };
 }
 
 function saveGame() {

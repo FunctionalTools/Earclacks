@@ -30,6 +30,8 @@
   <div id="gameScreen" class="screen" style="display:none">
     <div id="topBar">
       <span id="modeLabel">SANDBOX</span>
+      <button id="pauseBtn" onclick="togglePause()">⏸️ Pause</button>
+      <label>Speed: <input type="range" id="speedSlider" min="1" max="10" value="1" oninput="updateSpeed(this.value)"><span id="speedLabel">1x</span></label>
       <button onclick="clearMap()">🗑️ Clear</button>
       <button onclick="saveGame()">💾 Save</button>
       <button onclick="endGame()">🏁 End Game</button>

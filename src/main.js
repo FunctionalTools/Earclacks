@@ -5,6 +5,10 @@ let H = canvas.height = innerHeight;
 
 window.addEventListener('resize', ()=>{W=canvas.width=innerWidth;H=canvas.height=innerHeight});
 
+// Game state controls
+let gamePaused = false;
+let gameSpeed = 1;
+
 const rand = (a,b)=> Math.random()*(b-a)+a;
 const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
 
@@ -1489,8 +1493,29 @@ let uiDirty = true;
 let uiTick = 0;
 
 function loop(){
-  game.step();
+  // Run game updates based on speed (only if not paused)
+  if(!gamePaused){
+    for(let i = 0; i < gameSpeed; i++){
+      game.step();
+    }
+  }
+  
+  // Always draw, even when paused
   game.draw(ctx);
+  
+  // Draw pause indicator
+  if(gamePaused){
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.font = 'bold 64px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 4;
+    ctx.strokeText('⏸ PAUSED', W / 2, H / 2);
+    ctx.fillText('⏸ PAUSED', W / 2, H / 2);
+  }
+  
   document.getElementById('count').innerText = game.balls.length;
   if(uiDirty || uiTick++ % 10 === 0){
     updateSidebar();
@@ -1720,6 +1745,25 @@ document.getElementById('cross').addEventListener('click', ()=>{
 });
 
 document.getElementById('restart').addEventListener('click', ()=>{ location.reload() });
+
+// Pause button
+const pauseBtn = document.getElementById('pauseBtn');
+if(pauseBtn){
+  pauseBtn.addEventListener('click', () => {
+    gamePaused = !gamePaused;
+    pauseBtn.textContent = gamePaused ? '▶️ Resume' : '⏸️ Pause';
+  });
+}
+
+// Speed slider
+const speedSlider = document.getElementById('speedSlider');
+const speedValue = document.getElementById('speedValue');
+if(speedSlider && speedValue){
+  speedSlider.addEventListener('input', (e) => {
+    gameSpeed = parseInt(e.target.value);
+    speedValue.textContent = gameSpeed + 'x';
+  });
+}
 
 buildStatBars();
 validateSpawnForm();

@@ -24,6 +24,12 @@
         </div>
       </div>
       <div class="nav-right">
+        <button id="pauseBtn" class="btn btn-secondary btn-small" type="button">⏸️ Pause</button>
+        <div class="nav-speed">
+          <span class="nav-speed-label">Speed</span>
+          <input id="speedSlider" class="nav-speed-slider" type="range" min="1" max="10" step="1" value="1" />
+          <span id="speedValue" class="nav-speed-value">1x</span>
+        </div>
         <button id="clearMap" class="btn btn-danger">🗑️ Clear Map</button>
         <button id="clearTanks" class="btn btn-warning">Clear All Tanks</button>
         <button id="historyBtn" class="btn btn-secondary">📜 History</button>
