@@ -969,8 +969,17 @@ class Game{
       }
     }
 
+    // Get IDs of dead balls before filtering
+    const deadBallIds = deadBalls.map(b => b.id);
+    
+    // Remove dead balls
     this.balls = this.balls.filter(b=>b.isAlive());
-    this.turrets = this.turrets.filter(t=>t.alive!==false);
+    
+    // Remove turrets owned by dead balls AND turrets that are dead
+    this.turrets = this.turrets.filter(t => t.alive !== false && !deadBallIds.includes(t.ownerId));
+    
+    // Remove projectiles owned by dead balls
+    this.projectiles = this.projectiles.filter(p => !deadBallIds.includes(p.ownerId));
 
     if(this.mode === 'battle_royale'){
       const alive = this.balls.filter(b => b.isAlive());
@@ -1149,10 +1158,10 @@ function updateSidebar(){
     teamSelect.className = 'team-select';
     teamSelect.innerHTML = buildTeamOptions(b.teamId || '');
     teamSelect.addEventListener('change', (e) => {
+      e.stopPropagation();
       b.teamId = e.target.value || null;
       applyTeamColor(b);
       updateTeamsList();
-      updateSidebar();
       markDirty();
     });
 
@@ -1202,7 +1211,10 @@ function updateSidebar(){
     if(document.activeElement.id !== 'stat-damage') 
       document.getElementById('stat-damage').value = selectedBallForEdit.damage.toFixed(2);
     const statTeam = document.getElementById('stat-teamSelect');
-    statTeam.innerHTML = buildTeamOptions(selectedBallForEdit.teamId || '');
+    // Only update if the value changed (to prevent flickering)
+    if(statTeam.value !== (selectedBallForEdit.teamId || '')){
+      statTeam.innerHTML = buildTeamOptions(selectedBallForEdit.teamId || '');
+    }
     syncStatBars();
   } else {
     document.getElementById('statEditor').style.display = 'none';
@@ -1234,7 +1246,13 @@ function updateSidebar(){
 }
 
 function deleteBall(ball){
-  ball.health = 0;
+  // Remove the ball's turrets
+  game.turrets = game.turrets.filter(t => t.ownerId !== ball.id);
+  // Remove the ball's projectiles
+  game.projectiles = game.projectiles.filter(p => p.ownerId !== ball.id);
+  // Remove the ball itself
+  game.balls = game.balls.filter(b => b.id !== ball.id);
+  // Deselect if this was the selected ball
   if(selectedBallForEdit && selectedBallForEdit.id === ball.id){
     selectedBallForEdit = null;
   }
@@ -1668,6 +1686,7 @@ document.getElementById('stat-damage').addEventListener('input', (e) => {
 });
 document.getElementById('stat-teamSelect').addEventListener('change', (e) => {
   if(selectedBallForEdit){
+    e.stopPropagation();
     selectedBallForEdit.teamId = e.target.value || null;
     applyTeamColor(selectedBallForEdit);
     updateTeamsList();
