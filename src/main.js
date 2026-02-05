@@ -251,10 +251,12 @@ class Ball extends Entity{
     }
     if(this.abilities.medic){
       for(let b of game.balls){
-        if(b===this||!b.isAlive()||!isSameTeam(this,b)) continue;
+        if(b===this||!b.isAlive()) continue;
+        // Heal teammates (skip if not same team)
+        if(!isSameTeam(this,b)) continue;
         let dist = Math.hypot(b.x-this.x,b.y-this.y);
         if(dist < this.healRadius){
-          b.health = Math.min(b.maxHealth, b.health + 0.08);
+          b.health = Math.min(b.maxHealth, b.health + 0.15);
         }
       }
     }
@@ -371,6 +373,9 @@ class Ball extends Entity{
         this.y -= ny * overlap * 0.5;
         other.x += nx * overlap * 0.5;
         other.y += ny * overlap * 0.5;
+
+        // Skip damage if same team
+        if(isSameTeam(this, other)) continue;
 
         if(!this.hitCooldown[otherId]){
           this.health = Math.max(0, this.health - 3);
@@ -1149,53 +1154,87 @@ function updateTeamsList(){
 
 function updateSidebar(){
   const list = document.getElementById('ballList');
-  list.innerHTML = '';
-  game.balls.forEach(b => {
-    const item = document.createElement('div');
-    item.className = 'ball-item' + (b.selected ? ' selected' : '');
+  
+  // Only rebuild if count changed or forced
+  const currentCount = list.children.length;
+  const ballCount = game.balls.length;
+  
+  if(currentCount !== ballCount){
+    list.innerHTML = '';
+    game.balls.forEach(b => {
+      const item = document.createElement('div');
+      item.className = 'ball-item';
+      item.dataset.ballId = b.id;
 
-    const teamSelect = document.createElement('select');
-    teamSelect.className = 'team-select';
-    teamSelect.innerHTML = buildTeamOptions(b.teamId || '');
-    teamSelect.addEventListener('change', (e) => {
-      e.stopPropagation();
-      b.teamId = e.target.value || null;
-      applyTeamColor(b);
-      updateTeamsList();
-      markDirty();
+      const colorDot = document.createElement('div');
+      colorDot.className = 'ball-color';
+      colorDot.style.background = b.color;
+
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'ball-meta';
+      
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'ball-title';
+      titleDiv.textContent = `#${b.id} ${b.type}`;
+      
+      const subDiv = document.createElement('div');
+      subDiv.className = 'ball-sub';
+      subDiv.textContent = `HP ${Math.ceil(b.health)} · ${b.teamId ? (teams[b.teamId]?.name || 'Team') : 'Individual'}`;
+      
+      metaDiv.appendChild(titleDiv);
+      metaDiv.appendChild(subDiv);
+
+      // Team button instead of dropdown
+      const teamBtn = document.createElement('button');
+      teamBtn.className = 'btn btn-secondary btn-tiny';
+      teamBtn.textContent = '👥';
+      teamBtn.title = 'Change Team';
+      teamBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showTeamPicker(b);
+      });
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-danger btn-tiny';
+      deleteBtn.textContent = '🗑️';
+      deleteBtn.title = 'Delete';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteBall(b);
+      });
+
+      item.appendChild(colorDot);
+      item.appendChild(metaDiv);
+      item.appendChild(teamBtn);
+      item.appendChild(deleteBtn);
+
+      item.addEventListener('click', () => {
+        const wasSelected = b.selected;
+        game.balls.forEach(ball => ball.selected = false);
+        b.selected = !wasSelected;
+        selectBall(b.selected ? b : null);
+        selectTurret(null);
+        refreshBallListSelection();
+        markDirty();
+      });
+
+      list.appendChild(item);
     });
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn btn-danger btn-tiny';
-    deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteBall(b);
+  } else {
+    // Just update existing items
+    game.balls.forEach((b, idx) => {
+      const item = list.children[idx];
+      if(!item) return;
+      
+      const colorDot = item.querySelector('.ball-color');
+      if(colorDot) colorDot.style.background = b.color;
+      
+      const subDiv = item.querySelector('.ball-sub');
+      if(subDiv) subDiv.textContent = `HP ${Math.ceil(b.health)} · ${b.teamId ? (teams[b.teamId]?.name || 'Team') : 'Individual'}`;
     });
-
-    item.innerHTML = `
-      <div style="background:${b.color}" class="ball-color"></div>
-      <div class="ball-meta">
-        <div class="ball-title">#${b.id} ${b.type}</div>
-        <div class="ball-sub">HP ${Math.ceil(b.health)} · ${b.teamId ? (teams[b.teamId]?.name || 'Team') : 'Individual'}</div>
-      </div>
-    `;
-    item.appendChild(teamSelect);
-    item.appendChild(deleteBtn);
-
-    item.addEventListener('click', () => {
-      if(b.selected){
-        selectBall(null);
-      }else{
-        selectBall(b);
-      }
-      selectTurret(null);
-      updateSidebar();
-      markDirty();
-    });
-
-    list.appendChild(item);
-  });
+  }
+  
+  refreshBallListSelection();
 
   if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     document.getElementById('statEditor').style.display = 'block';
@@ -1234,7 +1273,7 @@ function updateSidebar(){
         jumpBtn.onclick = () => {
           if(ownerBall){
             selectBall(ownerBall);
-            updateSidebar();
+            refreshBallListSelection();
             markDirty();
           }
         };
@@ -1243,6 +1282,79 @@ function updateSidebar(){
       turretBox.style.display = 'none';
     }
   }
+}
+
+function refreshBallListSelection(){
+  const list = document.getElementById('ballList');
+  Array.from(list.children).forEach((item, idx) => {
+    const ball = game.balls[idx];
+    if(ball){
+      item.className = 'ball-item' + (ball.selected ? ' selected' : '');
+    }
+  });
+}
+
+function showTeamPicker(ball){
+  const picker = document.createElement('div');
+  picker.className = 'team-picker-popup';
+  picker.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:2px solid #333;border-radius:8px;padding:16px;z-index:10000;box-shadow:0 4px 20px rgba(0,0,0,0.3);min-width:250px;';
+  
+  const title = document.createElement('h3');
+  title.textContent = `Assign Team for Ball #${ball.id}`;
+  title.style.margin = '0 0 12px 0';
+  picker.appendChild(title);
+  
+  // Individual option
+  const indBtn = document.createElement('button');
+  indBtn.className = 'btn btn-secondary btn-block';
+  indBtn.textContent = '❌ Individual (No Team)';
+  indBtn.style.marginBottom = '8px';
+  indBtn.addEventListener('click', () => {
+    ball.teamId = null;
+    applyTeamColor(ball);
+    updateTeamsList();
+    markDirty();
+    document.body.removeChild(picker);
+    document.body.removeChild(overlay);
+  });
+  picker.appendChild(indBtn);
+  
+  // Team options
+  Object.values(teams).forEach(team => {
+    const teamBtn = document.createElement('button');
+    teamBtn.className = 'btn btn-primary btn-block';
+    teamBtn.style.cssText = `margin-bottom:8px;background:${team.color};border-color:${team.color};`;
+    teamBtn.textContent = `${team.name} ${ball.teamId === team.id ? '✓' : ''}`;
+    teamBtn.addEventListener('click', () => {
+      ball.teamId = team.id;
+      applyTeamColor(ball);
+      updateTeamsList();
+      markDirty();
+      document.body.removeChild(picker);
+      document.body.removeChild(overlay);
+    });
+    picker.appendChild(teamBtn);
+  });
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-outline btn-block';
+  closeBtn.textContent = 'Cancel';
+  closeBtn.style.marginTop = '8px';
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(picker);
+    document.body.removeChild(overlay);
+  });
+  picker.appendChild(closeBtn);
+  
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;';
+  overlay.addEventListener('click', () => {
+    document.body.removeChild(picker);
+    document.body.removeChild(overlay);
+  });
+  
+  document.body.appendChild(overlay);
+  document.body.appendChild(picker);
 }
 
 function deleteBall(ball){
@@ -1646,46 +1758,50 @@ canvas.addEventListener('click', (e)=>{
 });
 
 document.getElementById('deleteBall').addEventListener('click', () => {
-  if(selectedBallForEdit) deleteBall(selectedBallForEdit);
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
+    deleteBall(selectedBallForEdit);
+    selectedBallForEdit = null;
+    markDirty();
+  }
 });
 
 document.getElementById('stat-health').addEventListener('input', (e) => {
-  if(selectedBallForEdit){
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     setBallStat(selectedBallForEdit, 'health', e.target.value);
     syncStatBars();
     markDirty();
   }
 });
 document.getElementById('stat-maxHealth').addEventListener('input', (e) => {
-  if(selectedBallForEdit){
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     setBallStat(selectedBallForEdit, 'maxHealth', e.target.value);
     syncStatBars();
     markDirty();
   }
 });
 document.getElementById('stat-baseSize').addEventListener('input', (e) => {
-  if(selectedBallForEdit){
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     setBallStat(selectedBallForEdit, 'baseSize', e.target.value);
     syncStatBars();
     markDirty();
   }
 });
 document.getElementById('stat-speed').addEventListener('input', (e) => {
-  if(selectedBallForEdit){
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     setBallStat(selectedBallForEdit, 'speed', e.target.value);
     syncStatBars();
     markDirty();
   }
 });
 document.getElementById('stat-damage').addEventListener('input', (e) => {
-  if(selectedBallForEdit){
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     setBallStat(selectedBallForEdit, 'damage', e.target.value);
     syncStatBars();
     markDirty();
   }
 });
 document.getElementById('stat-teamSelect').addEventListener('change', (e) => {
-  if(selectedBallForEdit){
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
     e.stopPropagation();
     selectedBallForEdit.teamId = e.target.value || null;
     applyTeamColor(selectedBallForEdit);
@@ -1705,6 +1821,8 @@ document.getElementById('clearMap').addEventListener('click', () => {
 
 document.getElementById('clearTanks').addEventListener('click', () => {
   game.balls = [];
+  game.turrets = [];
+  game.projectiles = [];
   selectedBallForEdit = null;
   selectedTurretForInspect = null;
   markDirty();
