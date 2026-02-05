@@ -18,3 +18,9 @@ label{margin-right:6px}
 .ball-color{width:20px;height:20px;border-radius:50%;border:1px solid #000}
 .ball-item span{flex:1;font-size:12px}
 .team-input{width:50px;background:#0b1726;color:#e6eef6;border:1px solid rgba(255,255,255,0.1);padding:4px;border-radius:4px;font-size:11px}
+
+#statEditor{background:rgba(125,211,252,0.1);padding:12px;border-radius:8px;margin-bottom:12px;border:2px solid #7dd3fc}
+#statEditor h4{margin:0 0 10px 0;color:#7dd3fc;font-size:14px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.stat-row label{font-size:12px;color:#e6eef6}
+.stat-row input{width:100px;background:#0b1726;color:#e6eef6;border:1px solid rgba(255,255,255,0.15);padding:4px 6px;border-radius:4px;font-size:12px}

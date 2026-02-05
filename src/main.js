@@ -377,6 +377,7 @@ class Game{
 }
 
 const game = new Game();
+let selectedBallForEdit = null;
 
 function updateSidebar(){
   const list = document.getElementById('ballList');
@@ -405,6 +406,27 @@ function updateSidebar(){
       if(ball) ball.team = parseFloat(e.target.value);
     });
   });
+  
+  // Update stat editor if ball is selected
+  if(selectedBallForEdit && selectedBallForEdit.isAlive()){
+    document.getElementById('statEditor').style.display = 'block';
+    // Only update if not focused (being edited)
+    if(document.activeElement.id !== 'stat-health') 
+      document.getElementById('stat-health').value = selectedBallForEdit.health.toFixed(1);
+    if(document.activeElement.id !== 'stat-maxHealth') 
+      document.getElementById('stat-maxHealth').value = selectedBallForEdit.maxHealth;
+    if(document.activeElement.id !== 'stat-baseSize') 
+      document.getElementById('stat-baseSize').value = selectedBallForEdit.baseSize.toFixed(1);
+    if(document.activeElement.id !== 'stat-speed') 
+      document.getElementById('stat-speed').value = selectedBallForEdit.speed.toFixed(2);
+    if(document.activeElement.id !== 'stat-damage') 
+      document.getElementById('stat-damage').value = selectedBallForEdit.damage.toFixed(2);
+    if(document.activeElement.id !== 'stat-team') 
+      document.getElementById('stat-team').value = selectedBallForEdit.team.toFixed(0);
+  } else {
+    document.getElementById('statEditor').style.display = 'none';
+    selectedBallForEdit = null;
+  }
 }
 
 // basic spawn of random balls
@@ -447,7 +469,26 @@ document.getElementById('cross').addEventListener('click', ()=>{
 
 canvas.addEventListener('click', (e)=>{
   const rect = canvas.getBoundingClientRect();
-  game.spawnPos.x = e.clientX - rect.left; game.spawnPos.y = e.clientY - rect.top;
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  
+  // Check if clicked on a ball
+  let clickedBall = null;
+  for(let b of game.balls){
+    if(!b.isAlive()) continue;
+    let dist = Math.hypot(clickX - b.x, clickY - b.y);
+    if(dist < b.size){
+      clickedBall = b;
+      break;
+    }
+  }
+  
+  if(clickedBall){
+    selectedBallForEdit = clickedBall;
+  } else {
+    game.spawnPos.x = clickX;
+    game.spawnPos.y = clickY;
+  }
 });
 
 // Team assignment
@@ -460,6 +501,32 @@ document.getElementById('newTeam').addEventListener('click', () => {
   const teamNum = Math.floor(Math.random()*100);
   document.getElementById('teamNumber').value = teamNum;
   game.balls.forEach(b => { if(b.selected) b.team = teamNum });
+});
+
+// Stat editor input handlers
+document.getElementById('stat-health').addEventListener('input', (e) => {
+  if(selectedBallForEdit) selectedBallForEdit.health = parseFloat(e.target.value) || 0;
+});
+document.getElementById('stat-maxHealth').addEventListener('input', (e) => {
+  if(selectedBallForEdit) selectedBallForEdit.maxHealth = parseFloat(e.target.value) || 100;
+});
+document.getElementById('stat-baseSize').addEventListener('input', (e) => {
+  if(selectedBallForEdit) selectedBallForEdit.baseSize = parseFloat(e.target.value) || 10;
+});
+document.getElementById('stat-speed').addEventListener('input', (e) => {
+  if(selectedBallForEdit){
+    selectedBallForEdit.speed = parseFloat(e.target.value) || 1;
+    // Update velocity magnitude to match new speed
+    let angle = Math.atan2(selectedBallForEdit.vy, selectedBallForEdit.vx);
+    selectedBallForEdit.vx = Math.cos(angle) * selectedBallForEdit.speed;
+    selectedBallForEdit.vy = Math.sin(angle) * selectedBallForEdit.speed;
+  }
+});
+document.getElementById('stat-damage').addEventListener('input', (e) => {
+  if(selectedBallForEdit) selectedBallForEdit.damage = parseFloat(e.target.value) || 0;
+});
+document.getElementById('stat-team').addEventListener('input', (e) => {
+  if(selectedBallForEdit) selectedBallForEdit.team = parseFloat(e.target.value) || 0;
 });
 
 // Note: This project is inspired-by Earclacks mechanics (grower, turret spawner, swinger) but is an original implementation.
