@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Earclacks - Play</title>
+    <link rel="stylesheet" href="src/style.css" />
+  </head>
+  <body>
+    <!-- Top Navigation Bar -->
+    <div id="topNav">
+      <div class="nav-left">
+        <div class="logo">⚔️ Earclacks</div>
+        <div class="game-name" id="currentGameName">New Game</div>
+      </div>
+      <div class="nav-center">
+        <div class="stat-display">
+          <span class="stat-label">Balls:</span>
+          <span class="stat-value" id="count">0</span>
+        </div>
+        <div class="stat-display" style="margin-left:10px">
+          <span class="stat-label">Mode:</span>
+          <span class="stat-value" id="modeLabel">SANDBOX</span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button id="clearMap" class="btn btn-danger">🗑️ Clear Map</button>
+        <button id="clearTanks" class="btn btn-warning">Clear All Tanks</button>
+        <button id="historyBtn" class="btn btn-secondary">📜 History</button>
+        <button id="newGame" class="btn btn-primary">+ New Game</button>
+      </div>
+    </div>
+
+    <!-- Left Panel - Spawn Controls -->
+    <div id="leftPanel">
+      <div class="panel-header">
+        <h3>🎮 Spawn Tank</h3>
+      </div>
+
+      <div class="panel-content">
+        <div class="form-group">
+          <label>Tank Type</label>
+          <select id="type" class="modern-select">
+            <option value="basic">Basic</option>
+            <option value="grower">Grower</option>
+            <option value="wrench">Wrench</option>
+            <option value="swinger">Swinger</option>
+            <option value="splitter">Splitter</option>
+            <option value="healer">Healer</option>
+            <option value="speeder">Speeder</option>
+            <option value="tank">Tank</option>
+            <option value="sniper">Sniper</option>
+            <option value="vampire">Vampire</option>
+            <option value="bomber">Bomber</option>
+            <option value="freezer">Freezer</option>
+            <option value="shield">Shield</option>
+            <option value="teleporter">Teleporter</option>
+            <option value="multiplier">Multiplier</option>
+            <option value="drainer">Drainer</option>
+            <option value="artillery">Artillery</option>
+            <option value="medic">Medic</option>
+            <option value="rammer">Rammer</option>
+            <option value="blinker">Blinker</option>
+            <option value="magnet">Magnet</option>
+            <option value="splitshot">Splitshot</option>
+          </select>
+        </div>
+
+        <div id="tankDescription" class="tank-description">Select a tank type to see its abilities</div>
+
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="spawnQty" class="modern-input" value="1" min="1" max="50" />
+        </div>
+
+        <div class="form-group">
+          <label>Team</label>
+          <select id="spawnTeamSelect" class="modern-select">
+            <option value="">Individual (No Team)</option>
+          </select>
+        </div>
+
+        <button id="confirmSpawn" class="btn btn-success btn-large">✓ Spawn</button>
+
+        <div class="info-box">💡 Spawns at a random spot inside the map</div>
+
+        <div class="divider"></div>
+
+        <div class="other-controls">
+          <button id="cross" class="btn btn-secondary btn-block">⚗️ Cross Random Balls</button>
+          <button id="restart" class="btn btn-outline btn-block">🔄 Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Teams & Ball Control -->
+    <div id="rightPanel">
+      <div class="panel-header">
+        <h3>👥 Teams</h3>
+      </div>
+
+      <div class="panel-content">
+        <div class="team-creator">
+          <input type="text" id="newTeamName" class="modern-input" placeholder="Enter team name..." />
+          <button id="createTeam" class="btn btn-primary btn-small">Create Team</button>
+        </div>
+
+        <div id="teamsList" class="teams-list"></div>
+
+        <div class="divider"></div>
+
+        <div class="panel-header">
+          <h3>🎯 Ball Control</h3>
+        </div>
+
+        <div id="statEditor" class="stat-editor" style="display:none">
+          <div class="stat-editor-header">
+            <h4>Selected Ball #<span id="selectedBallId">0</span></h4>
+            <button id="deleteBall" class="btn btn-danger btn-tiny">🗑️ Delete</button>
+          </div>
+
+          <div class="diep-stats">
+            <div class="diep-stat" data-stat="health">
+              <div class="diep-stat-top">
+                <label>Health</label>
+                <input type="number" id="stat-health" step="1" class="diep-num" />
+              </div>
+              <div class="diep-bar" data-bar-for="health" aria-label="Health"></div>
+            </div>
+
+            <div class="diep-stat" data-stat="maxHealth">
+              <div class="diep-stat-top">
+                <label>Max HP</label>
+                <input type="number" id="stat-maxHealth" step="1" class="diep-num" />
+              </div>
+              <div class="diep-bar" data-bar-for="maxHealth" aria-label="Max HP"></div>
+            </div>
+
+            <div class="diep-stat" data-stat="baseSize">
+              <div class="diep-stat-top">
+                <label>Size</label>
+                <input type="number" id="stat-baseSize" step="0.5" class="diep-num" />
+              </div>
+              <div class="diep-bar" data-bar-for="baseSize" aria-label="Size"></div>
+            </div>
+
+            <div class="diep-stat" data-stat="speed">
+              <div class="diep-stat-top">
+                <label>Speed</label>
+                <input type="number" id="stat-speed" step="0.1" class="diep-num" />
+              </div>
+              <div class="diep-bar" data-bar-for="speed" aria-label="Speed"></div>
+            </div>
+
+            <div class="diep-stat" data-stat="damage">
+              <div class="diep-stat-top">
+                <label>Damage</label>
+                <input type="number" id="stat-damage" step="0.1" class="diep-num" />
+              </div>
+              <div class="diep-bar" data-bar-for="damage" aria-label="Damage"></div>
+            </div>
+
+            <div class="diep-stat" data-stat="team">
+              <div class="diep-stat-top">
+                <label>Team</label>
+                <select id="stat-teamSelect" class="modern-select">
+                  <option value="">Individual</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="turretInspector" class="turret-inspector" style="display:none">
+          <div class="turret-inspector-header">
+            <h4 style="margin:0">Selected Turret</h4>
+            <button id="jumpToOwner" class="btn btn-secondary btn-tiny">Go to Owner</button>
+          </div>
+          <div class="turret-inspector-body">
+            <div class="turret-row"><span class="turret-label">Owner</span><span id="turretOwnerId" class="turret-value">?</span></div>
+            <div class="turret-row"><span class="turret-label">Team</span><span id="turretTeam" class="turret-value">?</span></div>
+          </div>
+        </div>
+
+        <div id="ballList" class="ball-list"></div>
+      </div>
+    </div>
+
+    <!-- Mode selection modal -->
+    <div id="modeModal" class="modal">
+      <div class="modal-overlay"></div>
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2>🎮 Select Mode</h2>
+          <button class="modal-close" id="closeMode">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" data-mode="sandbox">Sandbox</button>
+            <button class="btn btn-secondary" data-mode="battle_royale">Battle Royale</button>
+          </div>
+          <div class="info-box" style="margin-top:12px">
+            Battle Royale: last tank alive gets FIRST PLACE (auto-pauses at 1 remaining).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="game"></canvas>
+    <script src="src/main.js"></script>
+  </body>
+</html>

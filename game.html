@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earclacks - Ball Battles</title>
+  <link rel="stylesheet" href="src/game-style.css">
+</head>
+<body>
+  <!-- Game Mode Selection -->
+  <div id="mainMenu" class="screen">
+    <h1>⚔️ EARCLACKS BATTLE ARENA</h1>
+    <div class="mode-grid">
+      <button class="mode-btn" onclick="startMode('sandbox')">🎮 SANDBOX</button>
+      <button class="mode-btn" onclick="startMode('battleroyale')">👑 BATTLE ROYALE</button>
+      <button class="mode-btn" onclick="startMode('blockbreaker')">🧱 BLOCK BREAKER</button>
+      <button class="mode-btn" onclick="startMode('zombies')">🧟 ZOMBIES</button>
+    </div>
+    <button class="history-btn" onclick="showHistory()">📜 GAME HISTORY</button>
+  </div>
+
+  <!-- History Screen -->
+  <div id="historyScreen" class="screen" style="display:none">
+    <h1>📜 Game History</h1>
+    <div id="gamesList"></div>
+    <button onclick="backToMenu()">← Back</button>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="gameScreen" class="screen" style="display:none">
+    <div id="topBar">
+      <span id="modeLabel">SANDBOX</span>
+      <button onclick="clearMap()">🗑️ Clear</button>
+      <button onclick="saveGame()">💾 Save</button>
+      <button onclick="endGame()">🏁 End Game</button>
+    </div>
+
+    <div id="spawnPanel">
+      <h3>Spawn Ball</h3>
+      <select id="ballType"></select>
+      <div id="ballDesc"></div>
+      <input type="number" id="qty" value="1" min="1" max="50">
+      <select id="teamSelect"><option value="0">Individual</option></select>
+      <button onclick="spawnBalls()">✓ Spawn</button>
+    </div>
+
+    <div id="sidebar">
+      <h3>Teams</h3>
+      <input type="text" id="teamName" placeholder="Team name">
+      <button onclick="createTeam()">+ Team</button>
+      <div id="teamsList"></div>
+      <div id="ballInfo"></div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <script src="src/game-engine.js"></script>
+</body>
+</html>
